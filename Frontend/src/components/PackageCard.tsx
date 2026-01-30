@@ -1,25 +1,27 @@
 import { Heart, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Pack, Product } from "@/types/api.types";
 
 interface PackageItem {
   name: string;
 }
 
 interface PackageCardProps {
-  name: string;
-  description: string;
-  price: number;
-  image: string;
-  items: PackageItem[];
+  pack: Pack;
 }
 
-const PackageCard = ({ name, description, price, image, items }: PackageCardProps) => {
+function isProduct(product: string | Product): product is Product {
+  return typeof product === "object" && product !== null && "_id" in product;
+}
+
+const PackageCard = ({ pack }: PackageCardProps) => {
+  const { name, description, packPrice: price, image, items } = pack;
   return (
     <div className="group bg-card rounded-2xl overflow-hidden shadow-card hover:shadow-card-hover transition-all duration-300 hover:-translate-y-1">
       {/* Image */}
       <div className="relative aspect-[4/3] overflow-hidden">
         <img
-          src={image}
+          src={image?.url || "https://img.icons8.com/deco/96/image.png"}
           alt={name}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
         />
@@ -38,9 +40,16 @@ const PackageCard = ({ name, description, price, image, items }: PackageCardProp
         {/* Items list */}
         <ul className="space-y-2 mb-5">
           {items.map((item, index) => (
-            <li key={index} className="flex items-center gap-2 text-sm text-foreground/80">
+            <li
+              key={index}
+              className="flex items-center gap-2 text-sm text-foreground/80"
+            >
               <Heart className="w-3 h-3 text-primary fill-primary flex-shrink-0" />
-              <span>{item.name}</span>
+              <span>
+                {isProduct(item.product)
+                  ? item.product.name
+                  : "Produit supprimé"}
+              </span>
             </li>
           ))}
         </ul>

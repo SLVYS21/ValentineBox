@@ -1,5 +1,5 @@
 import axiosInstance from '../utils/axios.config';
-import { Product, ProductQueryParams, ApiResponse } from '../types/api.types';
+import { Product, ProductQueryParams, ApiResponse, CreateProductDTO } from '../types/api.types';
 
 class ProductService {
   private readonly baseUrl = '/products';
@@ -28,13 +28,24 @@ class ProductService {
   /**
    * Create new product (admin)
    */
-  async createProduct(data: Partial<Product>): Promise<ApiResponse<Product>> {
-    const response = await axiosInstance.post<ApiResponse<Product>>(
-      this.baseUrl,
-      data
-    );
-    return response.data;
-  }
+  // async createProduct(data: Partial<Product>): Promise<ApiResponse<Product>> {
+  //   const response = await axiosInstance.post<ApiResponse<Product>>(
+  //     this.baseUrl,
+  //     data
+  //   );
+  //   return response.data;
+  // }
+
+  async createProduct(
+  data: CreateProductDTO
+): Promise<ApiResponse<Product>> {
+  const response = await axiosInstance.post<ApiResponse<Product>>(
+    this.baseUrl,
+    data
+  );
+  return response.data;
+}
+
 
   /**
    * Update product (admin)
@@ -149,8 +160,8 @@ class ProductService {
     budget: number,
     category?: string,
     tags?: string
-  ): Promise<ApiResponse<any>> {
-    const response = await axiosInstance.get<ApiResponse<any>>(
+  ) {
+    const response = await axiosInstance.get(
       `${this.baseUrl}/search/by-budget`,
       { params: { budget, category, tags } }
     );

@@ -80,6 +80,24 @@ export default {
           DEFAULT: "hsl(var(--expense))",
           bg: "hsl(var(--expense-bg))",
         },
+        status: {
+          success: {
+            DEFAULT: "hsl(142, 76%, 36%)",
+            bg: "hsl(142, 76%, 95%)",
+          },
+          warning: {
+            DEFAULT: "hsl(38, 92%, 50%)",
+            bg: "hsl(38, 92%, 95%)",
+          },
+          error: {
+            DEFAULT: "hsl(0, 84%, 60%)",
+            bg: "hsl(0, 84%, 95%)",
+          },
+          info: {
+            DEFAULT: "hsl(217, 91%, 60%)",
+            bg: "hsl(217, 91%, 95%)",
+          },
+        },
       },
       borderRadius: {
         lg: "var(--radius)",

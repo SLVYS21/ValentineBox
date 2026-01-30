@@ -55,6 +55,56 @@ export interface ProductMetadata {
   };
 }
 
+export interface BudgetSearchResult {
+  success: boolean;
+  budget: number;
+  summary: {
+    totalProducts: number;
+    withinBudgetCount: number;
+    aboveBudgetCount: number;
+    bundlesSuggested: number;
+  };
+  recommendations: {
+    withinBudget: BudgetProductSection;
+    slightlyAbove: BudgetProductSection;
+    moderatelyAbove: BudgetProductSection;
+    bundles: {
+      title: string;
+      description: string;
+      suggestions: any[];
+      message: string | null;
+    };
+  };
+  personalizedAdvice: {
+    type: "warning" | "info" | "success";
+    message: string;
+    action?: string;
+  }[];
+}
+
+interface BudgetProductSection {
+  title: string;
+  description: string;
+  products: Product[];
+  metrics: any;
+}
+
+
+export interface CreateProductDTO {
+  name: string;
+  description: string;
+  price: number;
+  category: ProductCategory;
+  tags: string[];
+  isActive: boolean;
+  isFeatured: boolean;
+  stock: {
+    quantity: number;
+    threshold: number;
+  };
+}
+
+
 // Pack Types
 export interface Pack {
   _id: string;

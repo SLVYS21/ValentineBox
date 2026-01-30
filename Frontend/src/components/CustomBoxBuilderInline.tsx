@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Flower2,
   Cookie,
@@ -10,6 +10,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { useCart } from "@/context/CartContext";
+import { useToast } from "@/hooks/use-toast";
+import { productService } from "@/services/product.service";
+import {
+  Product,
+  ProductCategory,
+  ProductQueryParams,
+  BudgetSearchResult,
+} from "@/types/api.types";
 
 const categories = [
   { id: "all", label: "Tous", icon: LayoutGrid },
@@ -20,111 +28,99 @@ const categories = [
   { id: "bienetre", label: "Bien-être", icon: Sparkles },
 ];
 
-const products = [
-  {
-    id: 101,
-    name: "Rose Unique",
-    price: 2000,
-    category: "fleurs",
-    image: "/images/pack-doux-baiser.jpg",
-  },
-  {
-    id: 102,
-    name: "Bouquet (12)",
-    price: 15000,
-    category: "fleurs",
-    image: "/images/pack-passion-rouge.jpg",
-  },
-  {
-    id: 103,
-    name: "Boîte Chocolats",
-    price: 8000,
-    category: "gourmandises",
-    image: "/images/pack-doux-baiser.jpg",
-  },
-  {
-    id: 104,
-    name: "Truffes Luxe",
-    price: 12000,
-    category: "gourmandises",
-    image: "/images/pack-passion-rouge.jpg",
-  },
-  {
-    id: 105,
-    name: "Collier Cœur",
-    price: 25000,
-    category: "bijoux",
-    image: "/images/pack-soiree-cocooning.jpg",
-  },
-  {
-    id: 106,
-    name: "Bracelet Amour",
-    price: 18000,
-    category: "bijoux",
-    image: "/images/pack-passion-rouge.jpg",
-  },
-  {
-    id: 107,
-    name: "Bougie Parfumée",
-    price: 6000,
-    category: "fun",
-    image: "/images/pack-soiree-cocooning.jpg",
-  },
-  {
-    id: 108,
-    name: "Jeu pour Couple",
-    price: 10000,
-    category: "fun",
-    image: "/images/pack-doux-baiser.jpg",
-  },
-  {
-    id: 109,
-    name: "Parfum",
-    price: 40000,
-    category: "bienetre",
-    image: "/images/pack-passion-rouge.jpg",
-  },
-  {
-    id: 110,
-    name: "Kit Spa",
-    price: 18000,
-    category: "bienetre",
-    image: "/images/pack-soiree-cocooning.jpg",
-  },
-  {
-    id: 111,
-    name: "Huile Massage",
-    price: 8000,
-    category: "bienetre",
-    image: "/images/pack-soiree-cocooning.jpg",
-  },
-  {
-    id: 112,
-    name: "Peluche Ours",
-    price: 5000,
-    category: "fun",
-    image: "/images/pack-doux-baiser.jpg",
-  },
-];
-
 const CustomBoxBuilderInline = () => {
+  const { toast } = useToast();
   const [budget, setBudget] = useState([50000]);
+  // const [products, setProducts] = useState<Product[]>([]);
+  const [budgetSearchResults, setBudgetSearchResults] =
+    useState<BudgetSearchResult | null>(null);
+
+  const [searchingByBudget, setSearchingByBudget] = useState(false);
   const [activeCategory, setActiveCategory] = useState("all");
   const { items, addItem, totalPrice, removeItemQuantity } = useCart();
+  const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
+  // Error handling
+  const [error, setError] = useState<string | null>(null);
 
   const maxBudget = budget[0];
   const remaining = maxBudget - totalPrice;
   const usedPercent = (totalPrice / maxBudget) * 100;
 
-  const filteredProducts = products.filter(
-    (p) => activeCategory === "all" || p.category === activeCategory,
-  );
+  // Search by budget
+  const handleBudgetSearch = async () => {
+    if (!budget || Number(budget) <= 0) {
+      toast({
+        title: "Budget requis",
+        description: "Veuillez entrer un budget valide",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setSearchingByBudget(true);
+      const budgetAmount = Number(budget);
+
+      const response = await productService.searchByBudget(
+        budgetAmount,
+        activeCategory || undefined,
+        undefined,
+      );
+
+      if (response.success) {
+        setBudgetSearchResults(response);
+
+        const count = response.recommendations.withinBudget.products.length;
+
+        if (count > 0) {
+          toast({
+            title: "Résultats trouvés",
+            description: `${count} produit(s) dans votre budget`,
+          });
+        } else {
+          toast({
+            title: "Aucun résultat",
+            description: "Aucun produit trouvé dans votre budget.",
+          });
+        }
+      }
+    } catch (error: any) {
+      toast({
+        title: "Erreur",
+        description: error.message || "Impossible de rechercher",
+        variant: "destructive",
+      });
+    } finally {
+      setSearchingByBudget(false);
+    }
+  };
+
+  useEffect(() => {
+    handleBudgetSearch();
+  }, [activeCategory, budget]);
+
+  // Clear budget search
+  // const clearBudgetSearch = () => {
+  //   setBudgetSearchResults(null);
+  //   fetchProducts();
+  // };
+
+  // const filteredProducts = products.filter(
+  //   (p) => activeCategory === "all" || p.category === activeCategory,
+  // );
 
   const canAdd = (price: number) => remaining >= price;
   const isOverBudget = totalPrice > maxBudget;
+  const products: Product[] =
+    budgetSearchResults?.recommendations?.withinBudget?.products ?? [];
 
-  const getQuantity = (id: number) =>
-    items.find((i) => i.id === id)?.quantity ?? 0;
+  const getQuantity = (id: string): number => {
+    const item = items.find((i) => i.id === id);
+    return item?.quantity ?? 0;
+  };
 
   return (
     <>
@@ -220,20 +216,23 @@ const CustomBoxBuilderInline = () => {
 
           {/* Products Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
-            {filteredProducts.map((product) => {
-              const quantity = getQuantity(product.id);
+            {products.map((product) => {
+              const quantity = getQuantity(product._id);
               const isAdded = quantity > 0;
               // const isAdded = items.some((i) => i.id === product.id);
               // const canAddThis = canAdd(product.price);
 
               return (
                 <div
-                  key={product.id}
+                  key={product._id}
                   className="bg-card rounded-2xl overflow-hidden shadow-card hover:shadow-card-hover transition-all"
                 >
                   <div className="relative aspect-[4/3] overflow-hidden">
                     <img
-                      src={product.image}
+                      src={
+                        product.images?.[0]?.url ||
+                        "https://img.icons8.com/deco/96/image.png"
+                      }
                       alt={product.name}
                       className="w-full h-full object-cover"
                     />
@@ -250,25 +249,24 @@ const CustomBoxBuilderInline = () => {
                     <p className="text-primary font-bold mb-3">
                       {product.price.toLocaleString()} FCFA
                     </p>
-                     <div className="flex items-center justify-between gap-3">
-                    {isAdded && (
+                    <div className="flex items-center justify-between gap-3">
+                      {isAdded && (
+                        <Button
+                          onClick={() => removeItemQuantity(product._id)}
+                          variant="outline"
+                          className="bg-gray-100 border-gray-200 w-9 h-9 rounded-full"
+                        >
+                          −
+                        </Button>
+                      )}
                       <Button
-                        onClick={() => removeItemQuantity(product.id)}
+                        onClick={() => addItem(product)}
+                        // disabled={!canAddThis || isAdded}
                         variant="outline"
-                        className="bg-gray-100 border-gray-200 w-9 h-9 rounded-full"
+                        className="w-full rounded-xl border-primary/5 text-primary hover:bg-primary hover:text-primary-foreground"
                       >
-                        −
+                        Ajouter
                       </Button>
-                    )}
-                    <Button
-                      onClick={() => addItem(product)}
-                      // disabled={!canAddThis || isAdded}
-                      variant="outline"
-                      className="w-full rounded-xl border-primary/5 text-primary hover:bg-primary hover:text-primary-foreground"
-                      
-                    >
-                      Ajouter
-                    </Button>
                     </div>
                   </div>
                 </div>

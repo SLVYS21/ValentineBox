@@ -1,14 +1,28 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { Loader2, Search, Sparkles } from "lucide-react";
 import PackageCard from "./PackageCard";
 import FallingHearts from "./FallingHearts";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import CustomBoxBuilderInline from "./CustomBoxBuilderInline";
+import { packService } from "@/services/pack.service";
+import { Pack, PackCategory, PackOccasion } from "@/types/api.types";
+import { useToast } from "@/hooks/use-toast";
+
+// const categories = [
+//   { id: "all", label: "Tous" },
+//   { id: "budget", label: "Petit Budget" },
+//   { id: "premium", label: "Premium" },
+//   { id: "luxe", label: "Luxe" },
+// ];
 
 const categories = [
-  { id: "all", label: "Tous" },
-  { id: "budget", label: "Petit Budget" },
-  { id: "premium", label: "Premium" },
-  { id: "luxe", label: "Luxe" },
+  { id: "all", label: "Tous", value: null },
+  { id: "petit_budget", label: "Petit Budget", value: "petit_budget" as PackCategory },
+  { id: "budget_moyen", label: "Budget Moyen", value: "budget_moyen" as PackCategory },
+  { id: "budget_confortable", label: "Confortable", value: "budget_confortable" as PackCategory },
+  { id: "budget_premium", label: "Premium", value: "budget_premium" as PackCategory },
+  { id: "budget_luxe", label: "Luxe", value: "budget_luxe" as PackCategory },
 ];
 
 const packages = [
@@ -56,12 +70,65 @@ const packages = [
 ];
 
 const Collections = () => {
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("packs");
   const [activeCategory, setActiveCategory] = useState("all");
+  const [activeOccasion, setActiveOccasion] = useState<PackOccasion | null>(null);
+  const [packs, setPacks] = useState<Pack[]>([]);
+  const [packCurrentPage, setPackCurrentPage] = useState(1);
+  const [packTotalPages, setPackTotalPages] = useState(1);
+  const [loading, setLoading] = useState(true);
 
-  const filteredPackages = packages.filter(
-    (pkg) => activeCategory === "all" || pkg.category === activeCategory
-  );
+  // Fetch packs
+  const fetchPacks = useCallback(async () => {
+    try {
+      setLoading(true);
+      const params: any = {
+        page: 1,
+        limit: 12,
+      };
+
+       if (activeCategory !== "all") params.category = activeCategory;
+      if (activeOccasion !== null) params.occasion = activeOccasion;
+
+      // if (activeCategory) {
+      //   params.category = activeCategory;
+      // }
+
+      // if (activeOccasion) {
+      //   params.occasion = activeOccasion;
+      // }
+
+      const response = await packService.getPacks(params);
+
+      if (response.success && response.data) {
+        setPacks(response.data);
+        setPackTotalPages(response.totalPages || 1);
+      }
+    } catch (error: any) {
+      toast({
+        title: "Erreur",
+        description: error.message || "Impossible de charger les packs",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [activeCategory, activeOccasion, toast]);
+
+  // Initial fetch
+  useEffect(() => {
+    fetchPacks();
+  }, []);
+
+  // Format currency
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('fr-FR').format(amount) + ' FCFA';
+  };
+
+  // const filteredPackages = packages.filter(
+  //   (pkg) => activeCategory === "all" || pkg.category === activeCategory
+  // );
 
   return (
     <section id="collections" className="relative py-16 md:py-24 bg-secondary/30 overflow-hidden">
@@ -131,20 +198,20 @@ const Collections = () => {
 
             {/* Package Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-              {filteredPackages.map((pkg, index) => (
+              {packs.map((pkg, index) => (
                 <div
-                  key={pkg.id}
+                  key={pkg._id}
                   className="animate-fade-in-up"
                   style={{ animationDelay: `${index * 0.1}s` }}
                 >
-                  <PackageCard {...pkg} />
+                  <PackageCard pack={pkg} />
                 </div>
               ))}
             </div>
 
-            {filteredPackages.length === 0 && (
+            {packs.length === 0 && (
               <div className="text-center py-12">
-                <p className="text-muted-foreground">Aucun pack trouvé dans cette catégorie.</p>
+                <p className="text-muted-foreground">Aucun pack disponible.</p>
               </div>
             )}
           </>

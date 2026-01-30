@@ -4,7 +4,7 @@ import Collections from "@/components/Collections";
 
 const Index = () => {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen landing-theme">
       <Header />
       <main>
         <Hero />
