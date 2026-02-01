@@ -117,7 +117,7 @@ exports.createOrder = asyncHandler(async (req, res) => {
   // Créer la commande
   const order = await Order.create({
     items: orderItems,
-    totalAmount,
+    finalAmount: totalAmount,
     customer,
     delivery: {
       ...delivery,
